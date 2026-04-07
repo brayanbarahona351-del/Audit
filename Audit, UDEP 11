@@ -1,0 +1,121 @@
+import streamlit as st
+import time
+
+# Configuración estética
+st.set_page_config(page_title="Auto-test AUDIT", page_icon="📊", layout="centered")
+
+# Estilo personalizado para las tarjetas de resultados
+st.markdown("""
+    <style>
+    .reportview-container { background: #f0f2f6; }
+    .result-card {
+        padding: 20px;
+        border-radius: 10px;
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 20px;
+    }
+    .bajo { background-color: #28a745; }
+    .riesgo { background-color: #ffc107; color: black; }
+    .perjudicial { background-color: #fd7e14; }
+    .dependencia { background-color: #dc3545; }
+    </style>
+    """, unsafe_layout_html=True)
+
+st.title("🛡️ Auto-Evaluación de Consumo de Alcohol")
+st.write("Este test es **anónimo y privado**. Responde con total honestidad para obtener un resultado preciso según los estándares de la OMS.")
+
+# --- Referencia de Tragos ---
+with st.expander("❓ ¿Qué es un 'trago estándar'?", expanded=False):
+    st.image("https://paho.org", caption="Equivalencias: 1 cerveza (12oz) = 1 copa de vino (5oz) = 1 caballito de licor (1.5oz)")
+
+# --- Formulario ---
+with st.form("audit_form"):
+    col1, col2 = st.columns(2)
+    with col1:
+        genero = st.selectbox("Selecciona tu género:", ["Hombre", "Mujer"])
+    with col2:
+        edad = st.number_input("Edad:", min_value=12, max_value=100, value=25)
+
+    st.divider()
+
+    # Preguntas 1-8 (Escala 0-4)
+    p1 = st.select_slider("1. ¿Con qué frecuencia bebe alcohol?", 
+                         options=["Nunca", "1 vez al mes o menos", "2-4 veces al mes", "2-3 veces por semana", "4 o más veces por semana"])
+    
+    p2 = st.select_slider("2. ¿Cuántos tragos consume en un día típico?", 
+                         options=["1 o 2", "3 o 4", "5 o 6", "7 a 9", "10 o más"])
+    
+    p3 = st.select_slider("3. ¿Con qué frecuencia bebe 5 o más tragos en una sola ocasión?", 
+                         options=["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario o casi diario"])
+    
+    st.info("Sobre el último año...")
+    
+    p4 = st.radio("4. ¿No pudo parar de beber una vez empezado?", ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario"])
+    p5 = st.radio("5. ¿Incumplió responsabilidades por beber?", ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario"])
+    p6 = st.radio("6. ¿Necesitó beber en ayunas tras una borrachera?", ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario"])
+    p7 = st.radio("7. ¿Sintió remordimiento o culpa tras beber?", ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario"])
+    p8 = st.radio("8. ¿No recordó lo sucedido la noche anterior?", ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario"])
+    
+    # Preguntas 9-10 (Escala 0, 2, 4)
+    st.divider()
+    p9 = st.radio("9. ¿Usted o alguien resultó herido por su consumo?", ["No", "Sí, pero no en el último año", "Sí, durante el último año"])
+    p10 = st.radio("10. ¿Alguien se ha preocupado por su forma de beber?", ["No", "Sí, pero no en el último año", "Sí, durante el último año"])
+
+    submit = st.form_submit_button("🚀 CALCULAR RESULTADO")
+
+# --- Lógica de Puntuación ---
+if submit:
+    # Mapeo de puntos (Índices coinciden con valor de 0 a 4)
+    lista_opciones_std = ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario"]
+    
+    score = 0
+    # P1 a P8 (simplificado por índice)
+    score += ["Nunca", "1 vez al mes o menos", "2-4 veces al mes", "2-3 veces por semana", "4 o más veces por semana"].index(p1)
+    score += ["1 o 2", "3 o 4", "5 o 6", "7 a 9", "10 o más"].index(p2)
+    score += ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario o casi diario"].index(p3)
+    score += ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario"].index(p4)
+    score += ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario"].index(p5)
+    score += ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario"].index(p6)
+    score += ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario"].index(p7)
+    score += ["Nunca", "Menos de una vez al mes", "Mensualmente", "Semanalmente", "A diario"].index(p8)
+    
+    # P9 y P10 (Puntaje especial: 0, 2, 4)
+    map_especial = {"No": 0, "Sí, pero no en el último año": 2, "Sí, durante el último año": 4}
+    score += map_especial[p9]
+    score += map_especial[p10]
+
+    # --- Animación de carga ---
+    with st.spinner('Analizando tus respuestas...'):
+        time.sleep(1.5)
+
+    st.subheader(f"Tu puntuación total es: {score}")
+
+    # --- Resultados según Manual ---
+    # Ajuste de rangos según género (Imagen proporcionada)
+    if genero == "Hombre":
+        r1, r2, r3 = 4, 14, 19
+    else:
+        r1, r2, r3 = 3, 12, 18
+
+    if score <= r1:
+        st.balloons()
+        st.success("### Nivel I: Riesgo Bajo")
+        st.write("Tu consumo de alcohol se considera de bajo riesgo. ¡Sigue así! La educación y la moderación son tus mejores aliados.")
+        
+    elif score <= r2:
+        st.warning("### Nivel II: Consumo de Riesgo")
+        st.write("**Intervención recomendada:** Sería ideal reducir el consumo. Estás en un punto donde podrías empezar a experimentar problemas de salud o sociales si aumentas la frecuencia.")
+        
+    elif score <= r3:
+        st.error("### Nivel III: Consumo Perjudicial")
+        st.write("**Intervención recomendada:** Tu patrón de consumo ya está causando daños físicos o mentales. Se sugiere buscar asesoramiento profesional o una 'intervención breve' con un médico.")
+        
+    else:
+        st.snow()
+        st.markdown("<div class='result-card dependencia'>NIVEL IV: POSIBLE DEPENDENCIA</div>", unsafe_allow_name=True)
+        st.write("**Acción urgente:** Tu puntaje sugiere una probable dependencia. Se recomienda encarecidamente acudir a un especialista para una evaluación clínica completa y apoyo profesional.")
+
+    # Botón para reiniciar
+    st.button("Realizar de nuevo")
